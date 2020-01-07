@@ -4,7 +4,7 @@ import string
 
 import pytest
 
-from check_mk_web_api import WebApi, CheckMkWebApiException
+from check_mk_web_api import WebApi, Error
 
 api = WebApi(
     os.environ['CHECK_MK_URL'],
@@ -37,7 +37,7 @@ def test_add_host():
 
 
 def test_add_duplicate_host():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.add_host('host00')
         api.add_host('host00')
 
@@ -58,7 +58,7 @@ def test_unset_host_attribute():
 
 
 def test_edit_nonexistent_host():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.edit_host('host00', ipaddress='192.168.0.101')
 
 
@@ -68,7 +68,7 @@ def test_get_host():
 
 
 def test_get_nonexistent_host():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.get_host('host00')
 
 
@@ -102,7 +102,7 @@ def test_delete_host():
 
 
 def test_delete_nonexistent_host():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.delete_host('host00')
 
 
@@ -126,7 +126,7 @@ def test_discover_services():
 
 
 def test_discover_services_for_nonexistent_host():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.discover_services('localhost')
 
 
@@ -155,13 +155,13 @@ def test_add_automation_user():
 
 
 def test_add_duplicate_user():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.add_user('user00', 'User 00', 'p4ssw0rd')
         api.add_user('user00', 'User 00', 'p4ssw0rd')
 
 
 def test_add_duplicate_automation_user():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.add_automation_user('automation00', 'Automation 00', 's3cr3t1234')
         api.add_automation_user('automation00', 'Automation 00', 's3cr3t1234')
 
@@ -182,7 +182,7 @@ def test_unset_user_attribute():
 
 
 def test_edit_nonexistent_user():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.edit_user('user00', {})
 
 
@@ -195,7 +195,7 @@ def test_delete_user():
 
 
 def test_delete_nonexistent_user():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.delete_user('user00')
 
 
@@ -205,7 +205,7 @@ def test_get_folder():
 
 
 def test_get_nonexistent_folder():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         assert api.get_folder('productive')
 
 
@@ -232,7 +232,7 @@ def test_edit_folder():
 
 
 def test_edit_nonexistent_folder():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         assert api.edit_folder('productive')
 
 
@@ -245,7 +245,7 @@ def test_delete_folder():
 
 
 def test_delete_nonexistent_folder():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.delete_folder('productive')
 
 
@@ -273,7 +273,7 @@ def test_add_contactgroup():
 
 
 def test_add_duplicate_contactgroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.add_contactgroup('user', 'User')
         api.add_contactgroup('user', 'User')
 
@@ -286,7 +286,7 @@ def test_edit_contactgroup():
 
 
 def test_edit_nonexisting_contactgroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.edit_contactgroup('user', 'Users')
 
 
@@ -298,7 +298,7 @@ def test_delete_contactgroup():
 
 
 def test_delete_nonexistent_contactgroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.delete_contactgroup('user')
 
 
@@ -326,7 +326,7 @@ def test_add_hostgroup():
 
 
 def test_add_duplicate_hostgroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.add_hostgroup('vm', 'VM')
         api.add_hostgroup('vm', 'VM')
 
@@ -339,7 +339,7 @@ def test_edit_hostgroup():
 
 
 def test_edit_nonexisting_hostgroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.edit_hostgroup('vm', 'VM')
 
 
@@ -351,7 +351,7 @@ def test_delete_hostgroup():
 
 
 def test_delete_nonexistent_hostgroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.delete_hostgroup('vm')
 
 
@@ -379,7 +379,7 @@ def test_add_servicegroup():
 
 
 def test_add_duplicate_servicegroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.add_servicegroup('db', 'Database')
         api.add_servicegroup('db', 'Database')
 
@@ -392,7 +392,7 @@ def test_edit_servicegroup():
 
 
 def test_edit_nonexisting_servicegroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.edit_servicegroup('db', 'Database')
 
 
@@ -404,7 +404,7 @@ def test_delete_servicegroup():
 
 
 def test_delete_nonexistent_servicegroup():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.delete_servicegroup('db')
 
 
@@ -433,12 +433,12 @@ def test_get_ruleset():
 
 
 def test_get_nonexistent_rulesets():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.get_ruleset('nonexistent')
 
 
 def test_set_nonexistent_rulesets():
-    with pytest.raises(CheckMkWebApiException):
+    with pytest.raises(Error):
         api.set_ruleset('nonexistent', {})
 
 

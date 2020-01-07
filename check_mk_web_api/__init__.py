@@ -2,12 +2,18 @@ import enum
 import json
 import os.path
 import re
-import ast
+from ast import literal_eval
 import urllib.parse
 
 from six.moves import urllib
 
-from check_mk_web_api.exception import CheckMkWebApiResponseException, CheckMkWebApiException, CheckMkWebApiAuthenticationException
+from check_mk_web_api.exception import (
+    AuthenticationError,
+    Error,
+    MalformedResponseError,
+    ResponseError,
+    ResultError,
+)
 
 
 class NoNoneValueDict(dict):
@@ -102,7 +108,7 @@ class WebApi:
 
         return request_string.encode()
 
-    def __build_request_path(self, query_params=None):
+    def __build_request_path(self, **query_params):
         path = self.web_api_base + '?'
 
         if not query_params:
@@ -128,8 +134,9 @@ class WebApi:
         data (dict): dict that will be sent as request body
 
         # Raises
-        CheckMkWebApiResponseException: Raised when the HTTP status code != 200
-        CheckMkWebApiException: Raised when the action's result_code != 0
+        ResponseError: Raised when the HTTP status code != 200
+        MalformedResponseError: when the body of the CheckMK reply cannot be parsed
+        ResultError: when CheckMK's own result code is != 0
         """
         if not query_params:
             query_params = {}
@@ -141,28 +148,33 @@ class WebApi:
         request_format = query_params.get('request_format', 'json')
 
         response = urllib.request.urlopen(
-            self.__build_request_path(query_params),
+            self.__build_request_path(**query_params),
             WebApi.__build_request_data(data, request_format)
         )
 
         if response.code != 200:
-            raise CheckMkWebApiResponseException(response)
+            raise ResponseError(response)
 
         body = response.read().decode()
 
         if body.startswith('Authentication error:'):
-            raise CheckMkWebApiAuthenticationException(body)
+            raise AuthenticationError(body)
 
-        if 'output_format' in query_params and query_params['output_format'] == 'python':
-            body_dict = ast.literal_eval(body)
+        output_format = query_params.get('output_format', 'json')
+        if output_format == 'python':
+            body_dict = literal_eval(body)
         else:
             body_dict = json.loads(body)
 
-        result = body_dict['result']
-        if body_dict['result_code'] == 0:
-            return result
-
-        raise CheckMkWebApiException(result)
+        try:
+            result_body = body_dict['result']
+            result_code = body_dict['result_code']
+            if result_code == 0:
+                return result_body
+            else:
+                raise ResultError(result_code, result_body)
+        except KeyError:
+                raise MalformedResponseError(response)
 
     def add_host(self, hostname, folder='/', ipaddress=None,
                  alias=None, tags=None, **custom_attrs):
