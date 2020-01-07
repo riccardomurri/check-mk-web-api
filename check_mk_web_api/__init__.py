@@ -17,6 +17,30 @@ from check_mk_web_api.exception import (
 )
 
 
+class DiscoverMode(enum.Enum):
+    """
+    # Members
+    NEW: Only discover new services
+    REMOVE: Remove exceeding services
+    FIXALL: Remove exceeding services and discover new services (Tabula Rasa)
+    REFRESH: Start from scratch
+    """
+    NEW = 'new'
+    REMOVE = 'remove'
+    FIXALL = 'fixall'
+    REFRESH = 'refresh'
+
+class ActivateMode(enum.Enum):
+    """
+    # Members
+    DIRTY: Update sites with changes
+    ALL: Update all slave sites
+    SPECIFIC: Only update specified sites
+    """
+    DIRTY = 'dirty'
+    ALL = 'all'
+    SPECIFIC = 'specific'
+
 class WebApi:
     """
     Abstraction for Check_Mk Web API
@@ -44,30 +68,6 @@ class WebApi:
         'kept': [re.compile(r'.*[Kk]ept (\d+),.*')],
         'new_count': [re.compile(r'.*New Count (\d+)$'), re.compile(r'.*(\d+) new.*')]  # output changed in 1.6 so we have to try multiple patterns
     }
-
-    class DiscoverMode(enum.Enum):
-        """
-        # Members
-        NEW: Only discover new services
-        REMOVE: Remove exceeding services
-        FIXALL: Remove exceeding services and discover new services (Tabula Rasa)
-        REFRESH: Start from scratch
-        """
-        NEW = 'new'
-        REMOVE = 'remove'
-        FIXALL = 'fixall'
-        REFRESH = 'refresh'
-
-    class ActivateMode(enum.Enum):
-        """
-        # Members
-        DIRTY: Update sites with changes
-        ALL: Update all slave sites
-        SPECIFIC: Only update specified sites
-        """
-        DIRTY = 'dirty'
-        ALL = 'all'
-        SPECIFIC = 'specific'
 
     def __init__(self, check_mk_url, username, secret):
         check_mk_url = check_mk_url.rstrip('/')

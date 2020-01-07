@@ -9,7 +9,11 @@ setup(
     author_email='xamrennerb@gmail.com',
     url='https://github.com/brennerm/check-mk-web-api',
     download_url='https://github.com/brennerm/check-mk-web-api/archive/1.6.tar.gz',
-    install_requires=['enum34;python_version<"3.4"', 'six'],
+    install_requires=[
+        'enum34;python_version<"3.4"',
+        'fire',
+        'six',
+    ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
     keywords=['check_mk', 'api', 'monitoring']
