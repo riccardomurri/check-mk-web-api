@@ -6,9 +6,10 @@ services:
 sudo: required
 install:
   - pip install -r requirements-doc.txt
+  - pip install mypy
 script:
-  - python2 -m py_compile check_mk_web_api/*.py
   - python3 -m py_compile check_mk_web_api/*.py
+  - mypy check_mk_web_api/__init__.py check_mk_web_api/exception.py
   - docker run -d --rm -p 127.0.0.1:8080:5000 --name check-mk checkmk/check-mk-raw:1.5.0-latest
   - sleep 60
   - docker exec -u cmk check-mk bash -c "echo automation-secret > /omd/sites/cmk/var/check_mk/web/automation/automation.secret"
