@@ -3,9 +3,8 @@ import json
 import os.path
 import re
 from ast import literal_eval
-import urllib.parse
-
-from six.moves import urllib
+from urllib.request import urlopen
+from urllib.parse import quote, urlencode
 
 from check_mk_web_api.exception import (
     AuthenticationError,
@@ -104,7 +103,7 @@ class WebApi:
         elif request_format == 'python':
             request_string = 'request=' + str(data)
 
-        request_string = urllib.parse.quote(request_string, safe="{[]}\"=, :")
+        request_string = quote(request_string, safe="{[]}\"=, :")
 
         return request_string.encode()
 
@@ -119,7 +118,7 @@ class WebApi:
             '_secret': self.secret
         })
 
-        query_string = urllib.parse.urlencode(query_params)
+        query_string = urlencode(self.__format_params(query_params))
 
         path += query_string
         return path
@@ -147,9 +146,9 @@ class WebApi:
 
         request_format = query_params.get('request_format', 'json')
 
-        response = urllib.request.urlopen(
+        response = urlopen(
             self.__build_request_path(**query_params),
-            WebApi.__build_request_data(data, request_format)
+            self.__build_request_data(data, request_format)
         )
 
         if response.code != 200:
