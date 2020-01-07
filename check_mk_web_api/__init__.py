@@ -84,11 +84,11 @@ class WebApi:
     def __init__(self, check_mk_url, username, secret):
         check_mk_url = check_mk_url.rstrip('/')
 
-        if check_mk_url.endswith('.py'):  # ends with /webapi.py
+        if check_mk_url.endswith('/webapi.py'):
             self.web_api_base = check_mk_url
-        elif check_mk_url.endswith('check_mk'):  # ends with /$SITE_NAME/check_mk
+        elif check_mk_url.endswith('/check_mk'):  # ends with /$SITE_NAME/check_mk
             self.web_api_base = os.path.join(check_mk_url, 'webapi.py')
-        else:  # ends with /$SITE_NAME
+        else:  # assume it ends with /$SITE_NAME
             self.web_api_base = os.path.join(check_mk_url, 'check_mk', 'webapi.py')
 
         self.username = username
