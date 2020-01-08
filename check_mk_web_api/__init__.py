@@ -2,7 +2,7 @@ from ast import literal_eval
 from collections.abc import Mapping, Sequence
 import enum
 import json
-import os.path
+from os.path import join
 import re
 from typing import Any, Dict, List, Optional
 from urllib.request import urlopen
@@ -75,9 +75,9 @@ class WebApi:
         if check_mk_url.endswith('/webapi.py'):
             self.web_api_base = check_mk_url
         elif check_mk_url.endswith('/check_mk'):  # ends with /$SITE_NAME/check_mk
-            self.web_api_base = os.path.join(check_mk_url, 'webapi.py')
+            self.web_api_base = join(check_mk_url, 'webapi.py')
         else:  # assume it ends with /$SITE_NAME
-            self.web_api_base = os.path.join(check_mk_url, 'check_mk', 'webapi.py')
+            self.web_api_base = join(check_mk_url, 'check_mk', 'webapi.py')
 
         self.username = username
         self.secret = secret
@@ -334,7 +334,7 @@ class WebApi:
         )
 
         counters = {}
-        for k, patterns in WebApi.__DISCOVERY_REGEX.items():
+        for k, patterns in self.__DISCOVERY_REGEX.items():
             for pattern in patterns:
                 match = pattern.match(result)
                 if match:
