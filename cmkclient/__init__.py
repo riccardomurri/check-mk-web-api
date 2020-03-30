@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from urllib.request import urlopen
 from urllib.parse import quote, urlencode
 
-from check_mk_web_api.exception import (
+from cmkclient.exception import (
     AuthenticationError,
     Error,
     MalformedResponseError,
@@ -62,12 +62,9 @@ class WebApi:
     ```
     """
 
-    __DISCOVERY_REGEX = {
-        'added': [re.compile(r'.*Added (\d+),.*')],
-        'removed': [re.compile(r'.*[Rr]emoved (\d+),.*')],
-        'kept': [re.compile(r'.*[Kk]ept (\d+),.*')],
-        'new_count': [re.compile(r'.*New Count (\d+)$'), re.compile(r'.*(\d+) new.*')]  # output changed in 1.6 so we have to try multiple patterns
-    }
+    #
+    # 0. Class set up and internal tooling
+    #
 
     def __init__(self, check_mk_url, username, secret):
         check_mk_url = check_mk_url.rstrip('/')
@@ -186,6 +183,37 @@ class WebApi:
         except KeyError:
                 raise MalformedResponseError(response)
 
+    #
+    # 1. Activating changes
+    #
+
+    def activate_changes(self,
+                         mode: ActivateMode = ActivateMode.DIRTY,
+                         sites: Optional[List[str]] = None,
+                         allow_foreign_changes: bool = False):
+        """
+        Activates all changes previously done
+
+        # Arguments
+        mode (ActivateMode): see #WebApi.ActivateMode
+        sites (list): List of sites to activates changes on
+        allow_foreign_changes (bool): If True changes of other users will be applied as well
+        """
+        data = {
+            'sites': sites
+        }
+
+        query_params = {
+            'mode': mode.value,
+            'allow_foreign_changes': allow_foreign_changes,
+        }
+
+        return self.make_request('activate_changes', query_params=query_params, data=data)
+
+    #
+    # 2. Host commands
+    #
+
     def add_host(self,
                  hostname: str,
                  folder: str = '/',
@@ -250,15 +278,28 @@ class WebApi:
         # Arguments
         hostname (str): Name of host to delete
         """
-        data = {
+        return self.make_request('delete_host', data={
             'hostname': hostname
-        }
+        })
 
-        return self.make_request('delete_host', data=data)
+    def delete_hosts(self, hostnames: List[str]):
+        """
+        Deletes hosts from the Check_MK inventory.
+
+        Only available in Check_MK starting version 1.5.0.
+
+        # Arguments
+        hostnames (list): Name of host to delete
+        """
+        return self.make_request('delete_host', data={
+            'hostnames': hostnames
+        })
 
     def delete_all_hosts(self):
         """
-        Deletes all hosts from the Check_MK inventory
+        Deletes all hosts from the Check_MK inventory.
+
+        This is an extension not present in the Check_MK API.
         """
         all_hosts = self.get_all_hosts()
 
@@ -275,15 +316,10 @@ class WebApi:
         hostname (str): Name of host to get
         effective_attributes (bool): If True attributes with default values will be returned
         """
-        data = {
-            'hostname': hostname,
-        }
-
-        query_params = {
-            'effective_attributes': effective_attributes,
-        }
-
-        return self.make_request('get_host', query_params=query_params, data=data)
+        return self.make_request(
+            'get_host',
+            data={'hostname': hostname},
+            query_params={'effective_attributes': effective_attributes})
 
     def get_all_hosts(self,
                       effective_attributes: bool = False):
@@ -293,17 +329,17 @@ class WebApi:
         # Arguments
         effective_attributes (bool): If True attributes with default values will be returned
         """
-        query_params = {
-            'effective_attributes': effective_attributes,
-        }
-
-        return self.make_request('get_all_hosts', query_params=query_params)
+        return self.make_request(
+            'get_all_hosts',
+            query_params={'effective_attributes': effective_attributes})
 
     def get_hosts_by_folder(self,
                             folder: str,
                             effective_attributes: bool = False):
         """
-        Gets hosts in folder
+        Gets hosts in folder.
+
+        This is an extension not present in the Check_MK API.
 
         # Arguments
         folder (str): folder to get hosts for
@@ -316,6 +352,13 @@ class WebApi:
                 hosts[host] = attr
 
         return hosts
+
+    __DISCOVERY_REGEX = {
+        'added': [re.compile(r'.*Added (\d+),.*')],
+        'removed': [re.compile(r'.*[Rr]emoved (\d+),.*')],
+        'kept': [re.compile(r'.*[Kk]ept (\d+),.*')],
+        'new_count': [re.compile(r'.*New Count (\d+)$'), re.compile(r'.*(\d+) new.*')]  # output changed in 1.6 so we have to try multiple patterns
+    }
 
     def discover_services(self,
                           hostname: str,
@@ -345,13 +388,261 @@ class WebApi:
     def discover_services_for_all_hosts(self,
                                         mode: DiscoverMode = DiscoverMode.NEW):
         """
-        Discovers the services of all hosts
+        Discovers the services of all hosts.
+
+        This is an extension not present in the Check_MK API.
 
         # Arguments
         mode (DiscoverMode): see #WebApi.DiscoverMode
         """
         for host in self.get_all_hosts():
             self.discover_services(host, mode)
+
+    #
+    # 3. Directory commands
+    #
+
+    def get_folder(self,
+                   folder: str,
+                   effective_attributes: bool = False):
+        """
+        Gets one folder
+
+        # Arguments
+        folder (str): name of folder to get
+        effective_attributes (bool): If True attributes with default values will be returned
+        """
+        return self.make_request(
+            'get_folder',
+            data={'folder': folder},
+            query_params={'effective_attributes': effective_attributes})
+
+    def get_all_folders(self):
+        """
+        Gets all folders
+        """
+        return self.make_request('get_all_folders')
+
+    def add_folder(self,
+                   folder: str,
+                   create_parent_folders: bool = True,
+                   **attributes):
+        """
+        Adds a new folder
+
+        # Arguments
+        folder (str): name of folder to add
+        create_parent_folders (bool): when false, all folders except the last must already exist
+        attributes (dict): attributes to set for the folder, look at output from #WebApi.get_folder
+        """
+        return self.make_request('add_folder', data={
+            'folder': folder,
+            'create_parent_folders': create_parent_folders,
+            'attributes': attributes if attributes else {}
+        })
+
+    def edit_folder(self, folder: str, **attributes):
+        """
+        Edits an existing folder
+
+        # Arguments
+        folder (str): name of folder to edit
+        attributes (dict): attributes to set for the folder, look at output from #WebApi.get_folder
+        """
+        return self.make_request('edit_folder', data={
+            'folder': folder,
+            'attributes': attributes if attributes else {}
+        })
+
+    def delete_folder(self, folder: str):
+        """
+        Deletes an existing folder
+
+        # Arguments
+        folder (str): name of folder to delete
+        """
+        return self.make_request('delete_folder', data={
+            'folder': folder
+        })
+
+    #
+    # 4. Group commands
+    #
+
+    def get_contactgroup(self, groupname: str):
+        """
+        Gets one contact group
+
+        # Arguments
+        group (str): name of contact group to get
+        """
+        return self.get_all_contactgroups()[groupname]
+
+    def get_all_contactgroups(self):
+        """
+        Gets all contact groups
+        """
+        return self.make_request('get_all_contactgroups')
+
+    def add_contactgroup(self, groupname: str, alias: str):
+        """
+        Adds a contact group
+
+        # Arguments
+        group (str): name of group to add
+        alias (str): alias for group
+        """
+        return self.make_request('add_contactgroup', data={
+            'groupname': groupname,
+            'alias': alias,
+        })
+
+    def edit_contactgroup(self, groupname: str, alias: str):
+        """
+        Edits a contact group
+
+        # Arguments
+        group (str): name of group to edit
+        alias (str): new alias for group
+        """
+        return self.make_request('edit_contactgroup', data={
+            'groupname': groupname,
+            'alias': alias,
+        })
+
+    def delete_contactgroup(self, groupname: str):
+        """
+        Deletes a contact group
+
+        # Arguments
+        group (str): name of group to delete
+        """
+        return self.make_request('delete_contactgroup', data={
+            'groupname': groupname
+        })
+
+    def delete_all_contactgroups(self):
+        """
+        Deletes all contact groups
+        """
+        for groupname in self.get_all_contactgroups():
+            self.delete_contactgroup(groupname)
+
+    def get_hostgroup(self, groupname: str):
+        """
+        Gets one host group
+
+        # Arguments
+        group (str): name of host group to get
+        """
+        return self.get_all_hostgroups()[groupname]
+
+    def get_all_hostgroups(self):
+        """
+        Gets all host groups
+        """
+        return self.make_request('get_all_hostgroups')
+
+    def add_hostgroup(self, groupname: str, alias: str):
+        """
+        Adds a host group
+
+        # Arguments
+        group (str): name of group to add
+        alias (str): alias for group
+        """
+        return self.make_request('add_hostgroup', data={
+            'groupname': groupname,
+            'alias': alias,
+        })
+
+    def edit_hostgroup(self, groupname: str, alias: str):
+        """
+        Edits a host group
+
+        # Arguments
+        group (str): name of group to edit
+        alias (str): new alias for group
+        """
+        return self.make_request('edit_hostgroup', data={
+            'groupname': groupname,
+            'alias': alias,
+        })
+
+    def delete_hostgroup(self, groupname: str):
+        """
+        Deletes a host group
+
+        # Arguments
+        group (str): name of group to delete
+        """
+        return self.make_request('delete_hostgroup', data={
+            'groupname': groupname,
+        })
+
+    def delete_all_hostgroups(self):
+        """
+        Deletes all host groups
+        """
+        for groupname in self.get_all_hostgroups():
+            self.delete_hostgroup(groupname)
+
+    def get_servicegroup(self, groupname: str):
+        return self.get_all_servicegroups()[groupname]
+
+    def get_all_servicegroups(self):
+        """
+        Gets all service groups
+        """
+        return self.make_request('get_all_servicegroups')
+
+    def add_servicegroup(self, groupname: str, alias: str):
+        """
+        Adds a service group
+
+        # Arguments
+        group (str): name of group to add
+        alias (str): alias for group
+        """
+        return self.make_request('add_servicegroup', data={
+            'groupname': groupname,
+            'alias': alias,
+        })
+
+    def edit_servicegroup(self, groupname: str, alias: str):
+        """
+        Edits a service group
+
+        # Arguments
+        group (str): name of group to edit
+        alias (str): new alias for group
+        """
+        return self.make_request('edit_servicegroup', data={
+            'groupname': groupname,
+            'alias': alias,
+        })
+
+    def delete_servicegroup(self, groupname: str):
+        """
+        Deletes a service group
+
+        # Arguments
+        group (str): name of group to delete
+        """
+        return self.make_request('delete_servicegroup', data={
+            'groupname': groupname,
+        })
+
+    def delete_all_servicegroups(self):
+        """
+        Deletes all service groups
+        """
+        for groupname in self.get_all_servicegroups():
+            self.delete_servicegroup(groupname)
+
+    #
+    # 5. User commands
+    #
 
     def get_user(self, user_id: str):
         """
@@ -370,7 +661,7 @@ class WebApi:
 
     def add_user(self,
                  user_id: str,
-                 username: str,
+                 alias: str,
                  password: str,
                  **custom_attrs):
         """
@@ -378,14 +669,14 @@ class WebApi:
 
         # Arguments
         user_id (str): user ID that will be used to log in
-        username (str): name of the user to create
+        alias (str): extended text associated to the user to create
         password (str): password that will be used to log in
         custom_attrs (dict): attributes that can be set for a user, look at output from #WebApi.get_all_users
         """
         data = {
             'users': {
                 user_id: {
-                    'alias': username,
+                    'alias': alias,
                     'password': password
                 }
             }
@@ -397,23 +688,23 @@ class WebApi:
 
     def add_automation_user(self,
                             user_id: str,
-                            username: str,
-                            secret: str,
+                            alias: str,
+                            automation_secret: str,
                             **custom_attrs):
         """
         Adds a new automation user
 
         # Arguments
         user_id (str): user ID that will be used to log in
-        username (str): name of the user to create
-        secret (str): secret that will be used to log in
+        alias (str): extended text associated to the user to create
+        automation_secret (str): secret that will be used to log in
         custom_attrs (dict): attributes that can be set for a user, look at output from #WebApi.get_all_users
         """
         data = {
             'users': {
                 user_id: {
-                    'alias': username,
-                    'automation_secret': secret
+                    'alias': alias,
+                    'automation_secret': automation_secret
                 }
             }
         }
@@ -434,272 +725,29 @@ class WebApi:
         attributes (dict): attributes to set for given host
         unset_attributes (list): list of attribute keys to unset
         """
-        data = {
+        return self.make_request('edit_users', data={
             'users': {
                 user_id: {
                     'set_attributes': attributes,
                     'unset_attributes': unset_attributes or [],
                 }
             }
-        }
+        })
 
-        return self.make_request('edit_users', data=data)
-
-    def delete_user(self,
-                    user_id: str):
+    def delete_user(self, user_id: str):
         """
         Deletes a user
 
         # Arguments
         user_id (str): ID of user to delete
         """
-        data = {
+        return self.make_request('delete_users', data={
             'users': [user_id]
-        }
-
-        return self.make_request('delete_users', data=data)
-
-    def get_folder(self,
-                   folder: str,
-                   effective_attributes: bool = False):
-        """
-        Gets one folder
-
-        # Arguments
-        folder (str): name of folder to get
-        effective_attributes (bool): If True attributes with default values will be returned
-        """
-        data = {
-            'folder': folder
-        }
-
-        query_params = {
-            'effective_attributes': effective_attributes
-        }
-
-        return self.make_request('get_folder', data=data, query_params=query_params)
-
-    def get_all_folders(self):
-        """
-        Gets all folders
-        """
-        return self.make_request('get_all_folders')
-
-    def add_folder(self, folder: str, **attributes):
-        """
-        Adds a new folder
-
-        # Arguments
-        folder (str): name of folder to add
-        attributes (dict): attributes to set for the folder, look at output from #WebApi.get_folder
-        """
-        data = {
-            'folder': folder,
-            'attributes': attributes if attributes else {}
-        }
-
-        return self.make_request('add_folder', data=data)
-
-    def edit_folder(self, folder: str, **attributes):
-        """
-        Edits an existing folder
-
-        # Arguments
-        folder (str): name of folder to edit
-        attributes (dict): attributes to set for the folder, look at output from #WebApi.get_folder
-        """
-        data = {
-            'folder': folder,
-            'attributes': attributes if attributes else {}
-        }
-
-        return self.make_request('edit_folder', data=data)
-
-    def delete_folder(self, folder: str):
-        """
-        Deletes an existing folder
-
-        # Arguments
-        folder (str): name of folder to delete
-        """
-        data = {
-            'folder': folder
-        }
-
-        return self.make_request('delete_folder', data=data)
-
-    def get_contactgroup(self, group: str):
-        """
-        Gets one contact group
-
-        # Arguments
-        group (str): name of contact group to get
-        """
-        return self.get_all_contactgroups()[group]
-
-    def get_all_contactgroups(self):
-        """
-        Gets all contact groups
-        """
-        return self.make_request('get_all_contactgroups')
-
-    def add_contactgroup(self, group: str, alias: str):
-        """
-        Adds a contact group
-
-        # Arguments
-        group (str): name of group to add
-        alias (str): alias for group
-        """
-        data = {
-            'groupname': group,
-            'alias': alias,
-        }
-
-        return self.make_request('add_contactgroup', data=data)
-
-    def edit_contactgroup(self, group: str, alias: str):
-        """
-        Edits a contact group
-
-        # Arguments
-        group (str): name of group to edit
-        alias (str): new alias for group
-        """
-        return self.make_request('edit_contactgroup', data={
-            'groupname': group,
-            'alias': alias,
         })
 
-    def delete_contactgroup(self, group: str):
-        """
-        Deletes a contact group
-
-        # Arguments
-        group (str): name of group to delete
-        """
-        return self.make_request('delete_contactgroup', data={
-            'groupname': group
-        })
-
-    def delete_all_contactgroups(self):
-        """
-        Deletes all contact groups
-        """
-        for group in self.get_all_contactgroups():
-            self.delete_contactgroup(group)
-
-    def get_hostgroup(self, group: str):
-        """
-        Gets one host group
-
-        # Arguments
-        group (str): name of host group to get
-        """
-        return self.get_all_hostgroups()[group]
-
-    def get_all_hostgroups(self):
-        """
-        Gets all host groups
-        """
-        return self.make_request('get_all_hostgroups')
-
-    def add_hostgroup(self, group: str, alias: str):
-        """
-        Adds a host group
-
-        # Arguments
-        group (str): name of group to add
-        alias (str): alias for group
-        """
-        return self.make_request('add_hostgroup', data={
-            'groupname': group,
-            'alias': alias,
-        })
-
-    def edit_hostgroup(self, group: str, alias: str):
-        """
-        Edits a host group
-
-        # Arguments
-        group (str): name of group to edit
-        alias (str): new alias for group
-        """
-        return self.make_request('edit_hostgroup', data={
-            'groupname': group,
-            'alias': alias,
-        })
-
-    def delete_hostgroup(self, group: str):
-        """
-        Deletes a host group
-
-        # Arguments
-        group (str): name of group to delete
-        """
-        return self.make_request('delete_hostgroup', data={
-            'groupname': group,
-        })
-
-    def delete_all_hostgroups(self):
-        """
-        Deletes all host groups
-        """
-        for group in self.get_all_hostgroups():
-            self.delete_hostgroup(group)
-
-    def get_servicegroup(self, group):
-        return self.get_all_servicegroups()[group]
-
-    def get_all_servicegroups(self):
-        """
-        Gets all service groups
-        """
-        return self.make_request('get_all_servicegroups')
-
-    def add_servicegroup(self, group: str, alias: str):
-        """
-        Adds a service group
-
-        # Arguments
-        group (str): name of group to add
-        alias (str): alias for group
-        """
-        return self.make_request('add_servicegroup', data={
-            'groupname': group,
-            'alias': alias,
-        })
-
-    def edit_servicegroup(self, group: str, alias: str):
-        """
-        Edits a service group
-
-        # Arguments
-        group (str): name of group to edit
-        alias (str): new alias for group
-        """
-        return self.make_request('edit_servicegroup', data={
-            'groupname': group,
-            'alias': alias,
-        })
-
-    def delete_servicegroup(self, group: str):
-        """
-        Deletes a service group
-
-        # Arguments
-        group (str): name of group to delete
-        """
-        return self.make_request('delete_servicegroup', data={
-            'groupname': group,
-        })
-
-    def delete_all_servicegroups(self):
-        """
-        Deletes all service groups
-        """
-        for group in self.get_all_servicegroups():
-            self.delete_servicegroup(group)
+    #
+    # 6. Rule Set commands
+    #
 
     def get_ruleset(self, ruleset: str):
         """
@@ -709,35 +757,36 @@ class WebApi:
         ruleset (str): name of rule set to get
         """
         return self.make_request(
-            'get_ruleset', data={
-                'ruleset_name': ruleset,
-            },
-            query_params={
-                'output_format': 'python'
-            })
+            'get_ruleset',
+            data={'ruleset_name': ruleset,},
+            query_params={'output_format': 'python'})
 
-    def get_rulesets(self):
+    def get_rulesets_info(self):
         """
-        Gets all rule sets
+        Return title, ID, and help text of all rule sets.
         """
         return self.make_request('get_rulesets_info', query_params={'output_format': 'python'})
 
     def set_ruleset(self,
-                    ruleset: str,
-                    ruleset_config: Dict[str, str]):
+                    ruleset_name: str,
+                    ruleset: Dict[str, str]):
         """
         Edits one rule set
 
         # Arguments
-        ruleset (str): name of rule set to edit
-        ruleset_config (dict): config that will be set, have a look at return value of #WebApi.get_ruleset
+        ruleset_name (str): ID of rule set to edit
+        ruleset (dict): config that will be set, have a look at return value of #WebApi.get_ruleset
         """
         data = {
-            'ruleset_name': ruleset,
-            'ruleset': ruleset_config or {}
+            'ruleset_name': ruleset_name,
+            'ruleset': ruleset or {}
         }
 
         return self.make_request('set_ruleset', data=data, query_params={'request_format': 'python'})
+
+    #
+    # 7. Host tag commands
+    #
 
     def get_hosttags(self):
         """
@@ -760,6 +809,10 @@ class WebApi:
         """
         return self.make_request('set_hosttags', data=hosttags)
 
+    #
+    # 8. Sites
+    #
+
     def get_site(self, site_id: str):
         """
         Gets a site
@@ -767,11 +820,10 @@ class WebApi:
         # Arguments
         site_id (str): ID of site to get
         """
-        data = {
-            'site_id': site_id
-        }
-
-        return self.make_request('get_site', data=data, query_params={'output_format': 'python'})
+        return self.make_request(
+            'get_site',
+            data={'site_id': site_id},
+            query_params={'output_format': 'python'})
 
     def set_site(self, site_id: str, site_config: Dict[str, Any]):
         """
@@ -781,12 +833,13 @@ class WebApi:
         site_id (str): ID of site to edit
         site_config: config that will be set, have a look at return value of #WebApi.get_site
         """
-        data = {
-            'site_id': site_id,
-            'site_config': site_config or {},
-        }
-
-        return self.make_request('set_site', data=data, query_params={'request_format': 'python'})
+        return self.make_request(
+            'set_site',
+            data={
+                'site_id': site_id,
+                'site_config': site_config or {},
+            },
+            query_params={'request_format': 'python'})
 
     def delete_site(self, site_id: str):
         """
@@ -799,16 +852,18 @@ class WebApi:
             'site_id': site_id
         })
 
-    def login_site(self, site_id: str, user: str, password: str):
+    def login_site(self, site_id: str, username: str, password: str):
         """
         Logs in to site
 
         # Arguments
         site_id (str): ID of site to log in to
+        username (str): ID of user
+        password (str): associated password (in cleartext)
         """
         return self.make_request('login_site', data={
             'site_id': site_id,
-            'username': user,
+            'username': username,
             'password': password
         })
 
@@ -823,6 +878,10 @@ class WebApi:
             'site_id': site_id
         })
 
+    #
+    # 9. Agent Bakery commands
+    #
+
     def bake_agents(self):
         """
         Bakes all agents
@@ -830,26 +889,3 @@ class WebApi:
         Enterprise Edition only!
         """
         return self.make_request('bake_agents')
-
-    def activate_changes(self,
-                         mode: ActivateMode = ActivateMode.DIRTY,
-                         sites: Optional[List[str]] = None,
-                         allow_foreign_changes: bool = False):
-        """
-        Activates all changes previously done
-
-        # Arguments
-        mode (ActivateMode): see #WebApi.ActivateMode
-        sites (list): List of sites to activates changes on
-        allow_foreign_changes (bool): If True changes of other users will be applied as well
-        """
-        data = {
-            'sites': sites
-        }
-
-        query_params = {
-            'mode': mode.value,
-            'allow_foreign_changes': allow_foreign_changes,
-        }
-
-        return self.make_request('activate_changes', query_params=query_params, data=data)

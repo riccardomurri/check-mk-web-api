@@ -4,7 +4,7 @@ import string
 
 import pytest
 
-from check_mk_web_api import WebApi, Error
+from cmkclient import WebApi, Error
 
 api = WebApi(
     os.environ['CHECK_MK_URL'],

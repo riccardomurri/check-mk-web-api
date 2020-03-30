@@ -1,15 +1,15 @@
 site_name: "Check_MK Web API"
-repo_url: https://github.com/brennerm/check-mk-web-api
+repo_url: https://github.com/riccardomurri/cmkclient
 
 # This tells pydocmd which pages to generate from which Python modules,
 # functions and classes. At the first level is the page name, below that
 # is a tree of Python member names (modules, classes, etc.) that should be
 # documented. Higher indentation leads to smaller header size.
 generate:
-- check_mk_web_api.md:
-    - check_mk_web_api.WebApi+
+- cmkclient.md:
+    - cmkclient.WebApi+
 - exceptions.md:
-    - check_mk_web_api.exception+
+    - cmkclient.exception+
 
 # MkDocs pages configuration. The `<<` operator is sugar added by pydocmd
 # that allows you to use an external Markdown file (eg. your project's README)
@@ -17,7 +17,7 @@ generate:
 pages:
 - Home: index.md << ../README.md
 - API Documentation:
-  - WebAPI: check_mk_web_api.md
+  - WebAPI: cmkclient.md
   - Exceptions: exceptions.md
 
 # These options all show off their default values. You don't have to add

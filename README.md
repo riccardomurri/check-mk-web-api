@@ -1,4 +1,4 @@
-# check-mk-web-api [![Build Status](https://travis-ci.org/brennerm/check-mk-web-api.svg?branch=master)](https://travis-ci.org/brennerm/check-mk-web-api)
+# cmkclient [![Build Status](https://travis-ci.org/riccardomurri/cmkclient.svg?branch=master)](https://travis-ci.org/riccardomurri/cmkclient)
 ## supported Checkmk versions
 - 1.6.0
 - 1.5.0
@@ -6,23 +6,23 @@
 ## Installation
 - From source code
 ```
-git clone https://github.com/brennerm/check-mk-web-api
-cd check-mk-web-api
+git clone https://github.com/riccardomurri/cmkclient
+cd cmkclient
 sudo python setup.py install
 ```
 
 - With pip
 ```
-pip install check_mk_web_api
+pip install cmkclient
 ```
 
-## [API Documentation](https://brennerm.github.io/check-mk-web-api/check_mk_web_api/)
+## [API Documentation](https://riccardomurri.github.io/cmkclient/cmkclient/)
 
 ## Quickstart
 #### Initialization
 ```
-import check_mk_web_api
-api = check_mk_web_api.WebApi('http://checkmk.company.com/check_mk/webapi.py', username='automation', secret='123456')
+import cmkclient
+api = cmkclient.WebApi('http://checkmk.company.com/check_mk/webapi.py', username='automation', secret='123456')
 ```
 
 #### Add Host
