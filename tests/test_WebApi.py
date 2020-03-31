@@ -442,8 +442,8 @@ def test_set_nonexistent_rulesets():
         api.set_ruleset('nonexistent', {})
 
 
-def test_get_rulesets():
-    assert api.get_rulesets()
+def test_get_rulesets_info():
+    assert api.get_rulesets_info()
 
 
 def test_get_site():
