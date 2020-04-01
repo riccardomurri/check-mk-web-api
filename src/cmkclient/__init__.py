@@ -17,6 +17,9 @@ from cmkclient.exception import (
 )
 
 
+__version__ = '1.6.0'
+
+
 class DiscoverMode(enum.Enum):
     """
     # Members
@@ -41,6 +44,8 @@ class ActivateMode(enum.Enum):
     ALL = 'all'
     SPECIFIC = 'specific'
 
+
+# pylint: disable=too-many-public-methods
 class WebApi:
     """
     Abstraction for Check_Mk Web API

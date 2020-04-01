@@ -1,5 +1,3 @@
-.idea
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -9,22 +7,27 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+*.egg
+*.egg-info/
 .Python
-env/
+.eggs/
+.installed.cfg
+bin
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
+env/
 lib/
 lib64/
 parts/
+pip-wheel-metadata/
+pyvenv*/
 sdist/
 var/
-*.egg-info/
-.installed.cfg
-*.egg
+venv*/
+wheelhouse
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -37,51 +40,48 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-htmlcov/
-.tox/
+*,cover
+.cache
 .coverage
 .coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
 .hypothesis/
+.pytest_cache/
+.tox/
+coverage.xml
+htmlcov/
+nosetests.xml
 
 # Translations
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-local_settings.py
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+.idea
+*.iml
+*.komodoproject
 
-# Flask stuff:
-instance/
-.webassets-cache
+# Complexity
+output/*.html
+output/*/index.html
 
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
+# Sphinx
 docs/_build/
 
-# MkDocs documentation
-docs/__build/
-
-# PyBuilder
-target/
-
-# IPython Notebook
-.ipynb_checkpoints
+# Mypy Cache
+.mypy_cache/
 
 # pyenv
 .python-version
 
-# celery beat schedule file
-celerybeat-schedule
-
 # dotenv
 .env
+
+# direnv
+.envrc
+.direnv
 
 # virtualenv
 venv/
@@ -92,3 +92,17 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# misc
+.DS_Store
+*~
+.*.sw[po]
+.build
+.ve
+.env
+.cache
+.pytest
+.benchmarks
+.bootstrap
+.appveyor.token
+*.bak
